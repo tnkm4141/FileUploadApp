@@ -1,0 +1,109 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Dosyalarım</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 30px;
+            background-color: #f8f9fa;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+        }
+
+        th, td {
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+
+        button {
+            padding: 5px 10px;
+            cursor: pointer;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+
+        .delete-btn {
+            background-color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Yüklenen Dosyalar</h1>
+
+    <table id="fileTable">
+        <thead>
+            <tr>
+                <th>Dosya Adı</th>
+                <th>Yükleme Tarihi</th>
+                <th>Sil</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
+        const token = localStorage.getItem("token");
+
+        async function fetchFiles() {
+            const res = await fetch("/api/file/myfiles", {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            const files = await res.json();
+            const tbody = document.querySelector("#fileTable tbody");
+            tbody.innerHTML = "";
+
+            files.forEach(file => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                        <td><a href="${file.filePath}" target="_blank">${file.fileName}</a></td>
+                        <td>${new Date(file.uploadDate).toLocaleString()}</td>
+                        <td><button class="delete-btn" onclick="deleteFile(${file.id})">Sil</button></td>
+                    `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function deleteFile(id) {
+            if (!confirm("Bu dosyayı silmek istediğinize emin misiniz?")) return;
+
+            const res = await fetch(`/api/file/${id}`, {
+                method: "DELETE",
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            if (res.ok) {
+                alert("Dosya silindi.");
+                fetchFiles();
+            } else if (res.status === 403) {
+                alert("Bu dosyayı silme yetkiniz yok.");
+            } else {
+                alert("Dosya silinirken bir hata oluştu.");
+            }
+        }
+
+        fetchFiles();
+    </script>
+
+</body>
+</html>

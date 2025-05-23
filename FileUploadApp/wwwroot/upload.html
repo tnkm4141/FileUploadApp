@@ -1,0 +1,98 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dosya Yükle</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background: #f4f4f4;
+            display: flex;
+            height: 100vh;
+            align-items: center;
+            justify-content: center;
+        }
+
+        form {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        input[type="file"] {
+            margin-bottom: 15px;
+        }
+
+        button {
+            padding: 10px;
+            width: 100%;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+        .logout {
+            margin-top: 15px;
+            display: block;
+            text-align: center;
+            color: red;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <form id="uploadForm">
+        <h2>Dosya Yükle</h2>
+        <input type="file" id="file" accept=".jpg,.png,.pdf" required />
+        <button type="submit">Yükle</button>
+        <span class="logout" onclick="logout()">Çıkış Yap</span>
+    </form>
+
+    <script>
+        document.getElementById("uploadForm").addEventListener("submit", async function (e) {
+            e.preventDefault();
+
+            const fileInput = document.getElementById("file");
+            const file = fileInput.files[0];
+            const token = localStorage.getItem("token");
+
+            if (!token) {
+                alert("Lütfen önce giriş yapın.");
+                window.location.href = "/login.html";
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("file", file);
+
+            const response = await fetch("/api/file/upload", {
+                method: "POST",
+                headers: {
+                    "Authorization": "Bearer " + token
+                },
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                alert("Dosya yüklendi: " + result.file.fileName);
+                fileInput.value = ""; // formu temizle
+                window.location.href = "/files.html";
+
+            } else {
+                alert(result.message || "Yükleme başarısız.");
+            }
+        });
+
+        function logout() {
+            localStorage.removeItem("token");
+            window.location.href = "/login.html";
+        }
+    </script>
+
+</body>
+</html>
