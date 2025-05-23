@@ -10,16 +10,36 @@
             background-color: #f8f9fa;
         }
 
+        h1 {
+            color: #343a40;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logout-btn {
+            padding: 8px 16px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
             background: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
         }
 
         th, td {
             border: 1px solid #dee2e6;
-            padding: 10px;
+            padding: 12px;
             text-align: left;
         }
 
@@ -28,23 +48,49 @@
             color: white;
         }
 
-        button {
-            padding: 5px 10px;
-            cursor: pointer;
-            background-color: #28a745;
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+            a:hover {
+                text-decoration: underline;
+            }
+
+        .delete-btn {
+            padding: 6px 12px;
+            background-color: #dc3545;
             color: white;
             border: none;
             border-radius: 4px;
+            cursor: pointer;
         }
 
-        .delete-btn {
-            background-color: #dc3545;
+        .empty-message {
+            margin-top: 20px;
+            font-style: italic;
+            color: #6c757d;
+        }
+        .upload-btn {
+            padding: 8px 16px;
+            background-color: #17a2b8;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
         }
     </style>
 </head>
 <body>
 
-    <h1>Yüklenen Dosyalar</h1>
+    <div class="top-bar">
+        <h1>Yüklenen Dosyalar</h1>
+        <div>
+            <button class="upload-btn" onclick="window.location.href='upload.html'">Dosya Yükle</button>
+            <button class="logout-btn" onclick="logout()">Çıkış Yap</button>
+        </div>
+    </div>
 
     <table id="fileTable">
         <thead>
@@ -57,29 +103,53 @@
         <tbody></tbody>
     </table>
 
+    <div class="empty-message" id="emptyMessage" style="display:none;">
+        Henüz yüklenmiş dosya bulunmamaktadır.
+    </div>
+
     <script>
         const token = localStorage.getItem("token");
 
+        if (!token) {
+            alert("Yetkisiz giriş! Lütfen tekrar giriş yapın.");
+            window.location.href = "/login.html";
+        }
+
         async function fetchFiles() {
-            const res = await fetch("/api/file/myfiles", {
-                headers: {
-                    Authorization: `Bearer ${token}`
+            try {
+                const res = await fetch("/api/file/myfiles", {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+
+                const tbody = document.querySelector("#fileTable tbody");
+                const emptyMessage = document.getElementById("emptyMessage");
+
+                if (!res.ok) {
+                    throw new Error("Dosyalar yüklenemedi.");
                 }
-            });
 
-            const files = await res.json();
-            const tbody = document.querySelector("#fileTable tbody");
-            tbody.innerHTML = "";
+                const files = await res.json();
+                tbody.innerHTML = "";
 
-            files.forEach(file => {
-                const tr = document.createElement("tr");
-                tr.innerHTML = `
-                        <td><a href="${file.filePath}" target="_blank">${file.fileName}</a></td>
-                        <td>${new Date(file.uploadDate).toLocaleString()}</td>
-                        <td><button class="delete-btn" onclick="deleteFile(${file.id})">Sil</button></td>
-                    `;
-                tbody.appendChild(tr);
-            });
+                if (files.length === 0) {
+                    emptyMessage.style.display = "block";
+                } else {
+                    emptyMessage.style.display = "none";
+                    files.forEach(file => {
+                        const tr = document.createElement("tr");
+                        tr.innerHTML = `
+                                <td><a href="${file.filePath}" target="_blank">${file.fileName}</a></td>
+                                <td>${new Date(file.uploadDate).toLocaleString()}</td>
+                                <td><button class="delete-btn" onclick="deleteFile(${file.id})">Sil</button></td>
+                            `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            } catch (err) {
+                alert("Hata: " + err.message);
+            }
         }
 
         async function deleteFile(id) {
@@ -100,6 +170,11 @@
             } else {
                 alert("Dosya silinirken bir hata oluştu.");
             }
+        }
+
+        function logout() {
+            localStorage.removeItem("token");
+            window.location.href = "/login.html";
         }
 
         fetchFiles();

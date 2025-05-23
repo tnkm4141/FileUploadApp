@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
     <meta charset="UTF-8">
     <title>Dosya Yükle</title>
@@ -18,10 +18,17 @@
             padding: 30px;
             border-radius: 10px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            width: 300px;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
         }
 
         input[type="file"] {
             margin-bottom: 15px;
+            width: 100%;
         }
 
         button {
@@ -31,7 +38,12 @@
             color: white;
             border: none;
             border-radius: 5px;
+            font-size: 16px;
         }
+
+            button:disabled {
+                background-color: #6c757d;
+            }
 
         .logout {
             margin-top: 15px;
@@ -46,8 +58,8 @@
 
     <form id="uploadForm">
         <h2>Dosya Yükle</h2>
-        <input type="file" id="file" accept=".jpg,.png,.pdf" required />
-        <button type="submit">Yükle</button>
+        <input type="file" id="file" accept=".jpg,.png,.pdf,.docx" required />
+        <button type="submit" id="uploadButton">Yükle</button>
         <span class="logout" onclick="logout()">Çıkış Yap</span>
     </form>
 
@@ -58,6 +70,7 @@
             const fileInput = document.getElementById("file");
             const file = fileInput.files[0];
             const token = localStorage.getItem("token");
+            const button = document.getElementById("uploadButton");
 
             if (!token) {
                 alert("Lütfen önce giriş yapın.");
@@ -65,26 +78,49 @@
                 return;
             }
 
+            const allowedTypes = [
+                "image/jpeg",
+                "image/png",
+                "application/pdf",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            ];
+
+            if (!allowedTypes.includes(file.type)) {
+                alert("Yalnızca JPG, PNG, PDF veya DOCX dosyaları yükleyebilirsiniz.");
+                return;
+            }
+
             const formData = new FormData();
             formData.append("file", file);
 
-            const response = await fetch("/api/file/upload", {
-                method: "POST",
-                headers: {
-                    "Authorization": "Bearer " + token
-                },
-                body: formData
-            });
+           
+            button.disabled = true;
+            button.textContent = "Yükleniyor...";
 
-            const result = await response.json();
+            try {
+                const response = await fetch("/api/file/upload", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": "Bearer " + token
+                    },
+                    body: formData
+                });
 
-            if (response.ok) {
-                alert("Dosya yüklendi: " + result.file.fileName);
-                fileInput.value = ""; // formu temizle
-                window.location.href = "/files.html";
+                const result = await response.json();
 
-            } else {
-                alert(result.message || "Yükleme başarısız.");
+                if (response.ok) {
+                    alert("Dosya yüklendi: " + result.file.fileName);
+                    fileInput.value = "";
+                    window.location.href = "/files.html";
+                } else {
+                    alert(result.message || "Yükleme başarısız.");
+                }
+            } catch (err) {
+                alert("Bir hata oluştu.");
+                console.error(err);
+            } finally {
+                button.disabled = false;
+                button.textContent = "Yükle";
             }
         });
 
